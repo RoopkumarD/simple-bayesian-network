@@ -1,3 +1,5 @@
+# python script used for testing the code
+
 from bayesian_network import *
 from probability_distribution import *
 
@@ -74,4 +76,13 @@ model.add_edge(train, appointment)
 # Finalize model
 model.cook()
 
-print(model.sorted_list)
+print(
+    model.probability(
+        [
+            "attend",
+            "none",
+            "no",
+            "on time",
+        ]
+    )
+)

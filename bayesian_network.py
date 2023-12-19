@@ -1,4 +1,7 @@
-from typing import List
+# defined Node and Bayesian_Network Class
+
+from functools import cache
+from typing import Dict, List, Tuple
 
 from utils import Queue
 
@@ -15,13 +18,16 @@ class Node:
     def get_probability(self, query: List[str]):
         return self.probability_distribution.get_probability(query)
 
+    def is_node_conditioned(self, node_state: str):
+        return node_state in self.probability_distribution.conditioned
+
 
 class Bayesian_Network:
     def __init__(self) -> None:
         self.nodes: List[Node] = list()
         self.edges = dict()
-        self.name_to_node = dict()
-        self.sorted_list = list()
+        self.name_to_node: Dict[str, Node] = dict()
+        self.sorted_list: List[str] = list()
 
     def add_nodes(self, nodes: List[Node]) -> None:
         self.nodes += nodes
@@ -34,35 +40,91 @@ class Bayesian_Network:
 
         self.edges[child_node.name].append(parent_node.name)
 
+    # return list sorted in order of sorted_list
     def find_hidden_variables(self, queried_list: List[str]):
-        hidden = list()
-        non_hidden_mapped_to_query = dict()
+        sorted_acc_to_list = list()
         temp = set(queried_list)
 
-        for node in self.nodes:
-            intersect = temp.intersection(node.distribution)
+        for node in self.sorted_list:
+            intersect = temp.intersection(self.name_to_node[node].distribution)
             if len(intersect) == 0:
-                hidden.append(node.name)
+                sorted_acc_to_list.append(None)
             else:
-                non_hidden_mapped_to_query[node.name] = list(intersect)[0]
+                sorted_acc_to_list.append(list(intersect)[0])
 
-        return hidden, non_hidden_mapped_to_query
+        return sorted_acc_to_list
 
-    def get_all_possible_states(self, queried_list: List[str]):
-        hidden, non_hidden_mapped_to_query = self.find_hidden_variables(queried_list)
+    # in this function, i break everything into piece using recursion and later return
+    @cache
+    def get_all_possible_states(
+        self,
+        sorted_acc_to_list: Tuple[str, ...],
+        conditioned_list: Tuple[str, ...] | Tuple[()] = (),
+        index: int = 0,
+    ):
+        if len(sorted_acc_to_list) == 0:
+            return 1
 
-        # return all possible states
+        current = sorted_acc_to_list[0]
 
+        current_conditioned = [
+            c
+            for c in conditioned_list
+            if self.name_to_node[self.sorted_list[index]].is_node_conditioned(c)
+        ]
+
+        total = 0
+
+        if current == None:
+            for state in self.name_to_node[self.sorted_list[index]].distribution:
+                new_conditioned_list: List[str] = []
+                temp = conditioned_list + (state,)
+                for i in range(index, len(self.sorted_list)):
+                    for c in temp:
+                        if (
+                            self.name_to_node[self.sorted_list[i]].is_node_conditioned(
+                                c
+                            )
+                            == True
+                        ) and c not in new_conditioned_list:
+                            new_conditioned_list.append(c)
+
+                total += self.name_to_node[self.sorted_list[index]].get_probability(
+                    [state] + current_conditioned
+                ) * self.get_all_possible_states(
+                    sorted_acc_to_list[1:], tuple(new_conditioned_list), index + 1
+                )
+        else:
+            new_conditioned_list: List[str] = []
+
+            temp = conditioned_list + (current,)
+            for i in range(index, len(self.sorted_list)):
+                for c in temp:
+                    if (
+                        self.name_to_node[self.sorted_list[i]].is_node_conditioned(c)
+                        == True
+                    ) and c not in new_conditioned_list:
+                        new_conditioned_list.append(c)
+
+            total += self.name_to_node[self.sorted_list[index]].get_probability(
+                [current] + current_conditioned
+            ) * self.get_all_possible_states(
+                sorted_acc_to_list[1:], tuple(new_conditioned_list), index + 1
+            )
+
+        return total
+
+    # calculating the probability of query
     def probability(self, query: List[str]):
         if len(self.sorted_list) == 0:
             raise Exception("Cook the network with cook method")
 
-        # get all possible states
-        # then loop through all and find each probability
-        pass
+        sorted_acc_to_list: List[str] = self.find_hidden_variables(query)
+        total = self.get_all_possible_states(tuple(sorted_acc_to_list))
+        return total
 
+    # doing topological sorting for defining conditional dependency later on
     def cook(self):
-        # doing topological sorting
         degrees = [0] * len(self.nodes)
         node_to_index = dict()
         sorted_list = list()

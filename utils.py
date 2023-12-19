@@ -1,3 +1,5 @@
+# implementing queue data structure for topological sorting in Bayesian_Network
+# cook method
 class Queue:
     def __init__(self) -> None:
         self.queue = list()
