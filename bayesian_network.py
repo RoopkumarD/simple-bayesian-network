@@ -15,6 +15,9 @@ class Node:
     def __eq__(self, other: object) -> bool:
         return isinstance(other, Node) and other.name == self.name
 
+    def sample(self, parents: List[str]):
+        return self.probability_distribution.sample(parents)
+
     def get_probability(self, query: List[str]):
         return self.probability_distribution.get_probability(query)
 
@@ -122,6 +125,19 @@ class Bayesian_Network:
         sorted_acc_to_list: List[str] = self.find_hidden_variables(query)
         total = self.get_all_possible_states(tuple(sorted_acc_to_list))
         return total
+
+    def generate_sample(self):
+        s = set()
+        parents = list()
+        for node in self.sorted_list:
+            current_conditioned = [
+                c for c in parents if self.name_to_node[node].is_node_conditioned(c)
+            ]
+            g = self.name_to_node[node].sample(current_conditioned)
+            s.add(g)
+            parents.append(g)
+
+        return s
 
     # doing topological sorting for defining conditional dependency later on
     def cook(self):

@@ -76,13 +76,14 @@ model.add_edge(train, appointment)
 # Finalize model
 model.cook()
 
-print(
-    model.probability(
-        [
-            "attend",
-            "none",
-            "no",
-            "on time",
-        ]
-    )
-)
+N = 1000
+query = ["delayed", "attend", "no"]
+times_occured = 0
+
+for i in range(N):
+    if len(set(query).intersection(model.generate_sample())) == len(query):
+        times_occured += 1
+
+print(times_occured / N)
+
+print(model.probability(query))
