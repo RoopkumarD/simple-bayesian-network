@@ -71,14 +71,9 @@ class Conditional_Probability_Table:
 
         conditioned_table: Dict[str, float] = dict()
         state_order = sorted(list(self.states))
-        normalizing_constant = 0.0
         for state in state_order:
             p = self.get_probability([state] + parents)
             conditioned_table[state] = p
-            normalizing_constant += p
-
-        for key in conditioned_table:
-            conditioned_table[key] = conditioned_table[key] / normalizing_constant
 
         uniform_random_number = random.uniform(0.0, 1.0)
         cdf_trailing_value = 0.0

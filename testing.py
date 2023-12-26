@@ -77,7 +77,7 @@ model.add_edge(train, appointment)
 model.cook()
 
 N = 1000
-query = ["delayed", "attend", "no"]
+query = ["attend"]
 times_occured = 0
 
 for i in range(N):
