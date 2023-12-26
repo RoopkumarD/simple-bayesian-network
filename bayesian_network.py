@@ -15,6 +15,9 @@ class Node:
     def __eq__(self, other: object) -> bool:
         return isinstance(other, Node) and other.name == self.name
 
+    def __repr__(self) -> str:
+        return f"{self.name}"
+
     def sample(self, parents: List[str]):
         return self.probability_distribution.sample(parents)
 
@@ -139,6 +142,28 @@ class Bayesian_Network:
 
         return s
 
+    def generate_likelihood_sample(self, evidence_variable_with_state: Dict[str, str]):
+        s = set()
+        parents = list()
+        weight_of_sample = 1.0
+        for node in self.sorted_list:
+            current_conditioned = [
+                c for c in parents if self.name_to_node[node].is_node_conditioned(c)
+            ]
+
+            if node in evidence_variable_with_state:
+                s.add(evidence_variable_with_state[node])
+                parents.append(evidence_variable_with_state[node])
+                weight_of_sample *= self.name_to_node[node].get_probability(
+                    [evidence_variable_with_state[node]] + current_conditioned
+                )
+            else:
+                g = self.name_to_node[node].sample(current_conditioned)
+                s.add(g)
+                parents.append(g)
+
+        return s, weight_of_sample
+
     # doing topological sorting for defining conditional dependency later on
     def cook(self):
         degrees = [0] * len(self.nodes)
@@ -172,7 +197,7 @@ class Bayesian_Network:
                     degrees[n] -= 1
 
             for i in range(num_nodes):
-                if degrees[i] == 0 and i not in already_checked:
+                if degrees[i] == 0 and i not in already_checked and i not in q.queue:
                     q.add(i)
 
         self.sorted_list = sorted_list
